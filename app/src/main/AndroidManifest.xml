@@ -42,7 +42,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name="com.esignal.signaldemo.BluetoothLeService" android:enabled="true"/>
+        <service android:name="com.microlife.software.BluetoothLeService" android:enabled="true"/>
     </application>
 
 </manifest>

@@ -24,11 +24,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.Build;
-import android.os.CountDownTimer;
-import android.os.Handler;
 import android.os.IBinder;
+import android.os.ParcelUuid;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,7 +63,7 @@ public class BluetoothLeService extends Service
     public boolean          mBluetoothGattServiceDiscover;
     public boolean          mBluetoothGattConnected;
 
-    CountDownTimer  cdt = null;
+    //CountDownTimer  cdt = null;
     private int     mConnectionState = STATE_DISCONNECTED;
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -82,16 +82,18 @@ public class BluetoothLeService extends Service
     //public final static String ACTION_mBluetoothDeviceAdv = "com.example.bluetooth.le.mBluetoothDeviceAdv";
     public final static String ACTION_Enable = "com.example.bluetooth.le.ACTION_Enable";
     public final static String ACTION_Connect_Fail = "com.example.bluetooth.le.ACTION_Connect_Fail";
-    public static final String COUNTDOWN_BR = "com.example.bluetooth.le.countdown_br";
+    //public static final String COUNTDOWN_BR = "com.example.bluetooth.le.countdown_br";
 
     //public final static UUID UUID_HEART_RATE_MEASUREMENT = UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+    public final static UUID UUID_CLIENT_CHARACTERISTIC =  UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG);
     public final static UUID UUID_NOTIFY_CHARACTERISTIC =  UUID.fromString(SampleGattAttributes.NOTIFY_CHARACTERISTIC);
     public final static UUID UUID_WRITE_CHARACTERISTIC = UUID.fromString(SampleGattAttributes.WTIYE_CHARACTERISTIC);
+    public final static ParcelUuid UUID_MLC_CHARACTERISTIC = ParcelUuid.fromString(SampleGattAttributes.MLC_BLE_CHARACTERISTIC);
 
-    private int BLE_CONNECT_TIMEOUT=6000;                                   //CONNECT TIME OUT SETTING
+    //private int BLE_CONNECT_TIMEOUT=6000;                                   //CONNECT TIME OUT SETTING
     //static final String HEXES = "0123456789ABCDEF";
-    private Handler handler = new Handler();
-    Intent bi = new Intent(COUNTDOWN_BR);
+    //private Handler handler = new Handler();
+    //Intent bi = new Intent(COUNTDOWN_BR);
 
 
     // Implements callback methods for GATT events that the app cares about.  For example,
@@ -180,7 +182,7 @@ public class BluetoothLeService extends Service
                 {
                     mConnectionState = STATE_DISCONNECTED;
                     Log.d(TAG, "Disconnect Fail");
-                    handler.removeCallbacks(TimeOUTCheckTimer);
+                    //handler.removeCallbacks(TimeOUTCheckTimer);
 
                     intentAction = ACTION_Connect_Fail;
                     broadcastUpdate(intentAction);
@@ -198,7 +200,7 @@ public class BluetoothLeService extends Service
         {
             if (status == BluetoothGatt.GATT_SUCCESS)
             {
-                handler.removeCallbacks(TimeOUTCheckTimer);
+                //handler.removeCallbacks(TimeOUTCheckTimer);
                 Log.i(TAG, "Discover Service");
                 mBluetoothGattServiceDiscover = true;
 
@@ -234,8 +236,12 @@ public class BluetoothLeService extends Service
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic)
         {
-            final byte[] data = characteristic.getValue();
-            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            if (UUID_NOTIFY_CHARACTERISTIC.equals(characteristic.getUuid()))
+            {
+                Log.d(TAG, "" + characteristic.getUuid());
+                final byte[] data = characteristic.getValue();
+                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            }
         }
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status)
@@ -301,7 +307,7 @@ public class BluetoothLeService extends Service
     {
         BluetoothLeService getService()
         {
-            cdt.start();
+            //cdt.start();
             return BluetoothLeService.this;
         }
     }
@@ -310,7 +316,8 @@ public class BluetoothLeService extends Service
     public void onCreate()
     {
         super.onCreate();
-        Log.d(TAG, "Service countdown timer is setting.");
+        Log.d(TAG, "Service, onCreate().");
+        /*
         cdt = new CountDownTimer(BLE_CONNECT_TIMEOUT, 1000) //6s
         {
             @Override
@@ -341,13 +348,14 @@ public class BluetoothLeService extends Service
                 //bi.putExtra("countdown", 0L);
                 //bi.putExtra("TimeOut", true);
                 Log.i(TAG, "Timer finished");
-                sendBroadcast(bi);
+                //sendBroadcast(bi);
                 //close();
                 //disconnect();
             }
 
 
         };
+        */
     }
 
     @Override
@@ -427,11 +435,11 @@ public class BluetoothLeService extends Service
 
         mConnectionState = STATE_CONNECTING;
         mBluetoothGattAddress = address;
-        mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
+        mBluetoothGatt = device.connectGatt(this, true, mGattCallback);
         Log.w(TAG, "Trying to Connect with " + mBluetoothGattAddress);
 
         //Connect Time Out Check  6 second
-        handler.postDelayed(TimeOUTCheckTimer, BLE_CONNECT_TIMEOUT);
+        //handler.postDelayed(TimeOUTCheckTimer, BLE_CONNECT_TIMEOUT);
 
         return true;
     }
@@ -453,9 +461,9 @@ public class BluetoothLeService extends Service
                     scanSettingsBuilder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
                     scanSettings = scanSettingsBuilder.build();
 
-                 /*   ScanFilter filter = new ScanFilter.Builder().setDeviceName(DeviceNameFilter).build();
+                    ScanFilter filter = new ScanFilter.Builder().setServiceUuid(UUID_MLC_CHARACTERISTIC).build();
                     filters = new ArrayList<ScanFilter>();
-                    filters.add(filter);*/
+                    filters.add(filter);
                 }
                 mBluetoothScanner.startScan(filters, scanSettings, mScanCallback);
             }
@@ -502,7 +510,7 @@ public class BluetoothLeService extends Service
         mBluetoothGattAddress=null;
         mBluetoothGattConnected=false;
 
-        if(handler!=null)   handler.removeCallbacks(TimeOUTCheckTimer);
+        //if(handler!=null)   handler.removeCallbacks(TimeOUTCheckTimer);
     }
 
     public void readCharacteristic(BluetoothGattCharacteristic characteristic,BluetoothGatt Gatt)
@@ -528,9 +536,11 @@ public class BluetoothLeService extends Service
             List<BluetoothGattCharacteristic> mGattCharacteristics = GattService.getCharacteristics();
             for (BluetoothGattCharacteristic mCharacteristic : mGattCharacteristics)
             {
-                if (UUID_NOTIFY_CHARACTERISTIC.equals(mCharacteristic.getUuid()))
+                if (UUID_NOTIFY_CHARACTERISTIC.equals(mCharacteristic.getUuid())
+                    /*UUID_MLC_CHARACTERISTIC.equals(mCharacteristic.getUuid())*/    )
+                //if(UUID_CLIENT_CHARACTERISTIC.equals(mCharacteristic.getUuid()))
                 {
-                    setCharacteristicNotification(gatt,mCharacteristic, true);
+                    setCharacteristicNotification(gatt, mCharacteristic, true);
                 }
             }
         }
@@ -551,6 +561,8 @@ public class BluetoothLeService extends Service
                 UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         gatt.writeDescriptor(descriptor);
+
+        Log.d(TAG, "setCharacteristicNotification(), characteristic: " + characteristic.getUuid());
     }
 
     //public void writeCharacteristicC(BluetoothGattCharacteristic characteristic)
@@ -636,8 +648,8 @@ public class BluetoothLeService extends Service
             intentAction = ACTION_Connect_Fail;
             broadcastUpdate(intentAction);
 
-            handler.postDelayed(this, BLE_CONNECT_TIMEOUT);
-            handler.removeCallbacks(TimeOUTCheckTimer);
+            //handler.postDelayed(this, BLE_CONNECT_TIMEOUT);
+            //handler.removeCallbacks(TimeOUTCheckTimer);
         }
     };
 }

@@ -52,6 +52,7 @@ import static java.lang.String.format;
 
 public class MainActivity extends AppCompatActivity
 {
+    private final static String TAG = MainActivity.class.getSimpleName();
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeService mBluetoothLeService;
     private LeDeviceListAdapter mLeDeviceListAdapter;
@@ -119,7 +120,7 @@ public class MainActivity extends AppCompatActivity
             //BLE Status Changed
             final String action = intent.getAction();
 
-            Log.d("mGattUpdateReceiver()", "action:" + action);     //debug
+            Log.d(TAG, "onReceive(), action: " + action);     //debug
 
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action))                //裝置連線成功
             {
@@ -139,7 +140,7 @@ public class MainActivity extends AppCompatActivity
                 invalidateOptionsMenu();
                 mConnect.setText("Disconnected");
                 InsertMessage(mBluetoothLeService.mBluetoothGattAddress+" Disonnected");
-                parserData(A0ReciveList);
+                //parserData(A0ReciveList);
 
                 if(OpenDialog)
                 {
@@ -174,14 +175,16 @@ public class MainActivity extends AppCompatActivity
             }
             else if (BluetoothLeService.ACTION_Enable.equals(action))
             {
-                progressDialog.setMessage("Connected");
+                //displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                Log.d(TAG, "ACTION_Enable: " + intent.getStringExtra(BluetoothLeService.ACTION_Enable));
+                // /progressDialog.setMessage("Connected");
                 //Notify Enabled & Send Command to BLE Device
                 //CommandTest();
             }
-            else if (BluetoothLeService.COUNTDOWN_BR.equals(action))
-            {
-                mBluetoothLeService.broadcastUpdate(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-            }
+            //else if (BluetoothLeService.COUNTDOWN_BR.equals(action))
+            //{
+            //    mBluetoothLeService.broadcastUpdate(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+            //}
             else if (BluetoothLeService.ACTION_Connect_Fail.equals(action))
             {}
         }
@@ -432,7 +435,7 @@ public class MainActivity extends AppCompatActivity
             PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             versionCode = packageInfo.versionCode;
             versionName = packageInfo.versionName;
-            Log.d("appVersion", "Ver. " + versionName + "." + versionCode);
+            Log.d(TAG, "appVersion(), Ver. " + versionName + "." + versionCode);
         }
         catch (PackageManager.NameNotFoundException e)
         {
@@ -453,25 +456,30 @@ public class MainActivity extends AppCompatActivity
         switch ((byte)command)
         {
             case (byte) 0xA0:
-                testCommand = new byte[]{0x4D, (byte) 0xFE, 0x00, 0x02, (byte) 0x81, (byte) 0xCE};
+                testCommand = new byte[]{0x4D, (byte) 0xFD, 0x00, 0x02, (byte) 0xA0, (byte) 0xCE};
                 break;
 
             case (byte) 0xA1:
-                testCommand = Utils.mlcTestCommand((byte)0x01);
+                testCommand = Utils.mlcTestCommand((byte)0xA1);
+                //testCommand = new byte[]{  0x4D, (byte) 0xFD, 0x00, 0x08, (byte) 0xA1,
+                //                            (byte) 0x18, (byte) 0x7A, (byte) 0x93,
+                //                            (byte) 0x03, (byte) 0x77, (byte) 0xDD,
+                //                             0x00};
+                //testCommand[testCommand.length - 1] = (byte) Utils.countCS(testCommand);
                 break;
 
             default:
                 break;
         }
         mBluetoothLeService.writeCharacteristicCMD(testCommand);
-        Log.d("Cmd ", "Write Command to device.");
+        Log.d(TAG, "Cmd, Write Command to device.");
 
         StringBuilder sb= new StringBuilder(testCommand.length);
         for (byte indx: testCommand)
         {
             sb.append(format("%02X", indx));
         }
-        Log.d("Cmd ", "Write Command to NC150: " + sb.toString());
+        Log.d(TAG, "Cmd, Write Command to NC150: " + sb.toString());
         InsertMessage("T:" + sb.toString() + "\r\n");
     }
 
@@ -479,7 +487,7 @@ public class MainActivity extends AppCompatActivity
     {
         for (int i=0;i<data.length; i++)
         {
-            Log.d(info, " data [" + i + "]= " + format("0x%02X",data[i]));
+            Log.d(TAG, "data [" + i + "]= " + format("0x%02X",data[i]));
         }
     }
 
@@ -488,47 +496,47 @@ public class MainActivity extends AppCompatActivity
         if (data != null)
         {
             byte[] byteArray = hexStringToByteArray(data);
-            Log.d("display Data", "device: " + data);
+            Log.d(TAG, "displayData(), device: " + data);
 
             if (byteArray[0] == 'M')
             {
                 InsertMessage("R:" + data);
-                Log.d("Dd()", " bA[4]: " + format("%02X", byteArray[4]) + ": "
+                Log.d(TAG, "displayData(), bA[4]: " + format("%02X", byteArray[4]) + ": "
                         + mBluetoothLeService.mBluetoothGattConnected);
 
                 switch (byteArray[4])
                 {
                     case (byte) 0xA0:
-                        Log.d("dD()", "A0 Command found.");
-                        if (!java.util.Arrays.equals(A0Tmp, byteArray))
-                        {
-                            Log.d("dD()", "Add A1 receive data to List.");
-                            A0ReciveList.add(byteArray);
-                            A0Tmp = byteArray.clone();
-                            //LogDebugShow("A0 new item", A0ReciveList.get(A0ReciveList.size()-1));
-                        }
-                        Log.d("Dd()", "A0 List Size: " + A0ReciveList.size());
+                        //Log.d(TAG, "displayData(), A0 Command found.");
+                        //if (!java.util.Arrays.equals(A0Tmp, byteArray))
+                        //{
+                        //    Log.d("dD()", "Add A1 receive data to List.");
+                        //    A0ReciveList.add(byteArray);
+                        //    A0Tmp = byteArray.clone();
+                        //    //LogDebugShow("A0 new item", A0ReciveList.get(A0ReciveList.size()-1));
+                        //}
+                        //Log.d(TAG, "displayData(), A0 List Size: " + A0ReciveList.size());
 
-                        CommandTest((byte) 0xA0);
-                        mBluetoothLeService.cdt.start();
+                        //CommandTest((byte) 0xA0);
+                        //mBluetoothLeService.cdt.start();
                         mBluetoothLeService.broadcastUpdate(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-                        Log.d("0xA1 Ack", "sent A1 Ack to BLE service.");
+                        Log.d(TAG, "displayData(), 0xA1 Ack to BLE service.");
                         break;
 
                     case (byte) 0xA1:
-                        Log.d("dD()", "A1 Command found.");
-                        if (!java.util.Arrays.equals(A1Tmp, byteArray))
-                        {
-                            Log.d("dD()", "Add A1 receive data to List.");
-                            A0ReciveList.add(byteArray);
-                            A1Tmp = byteArray.clone();
-                            //LogDebugShow("A1 new item", A0ReciveList.get(A0ReciveList.size()-1));
+                        //Log.d(TAG, "displayData(), A1 Command found.");
+                        //if (!java.util.Arrays.equals(A1Tmp, byteArray))
+                        //{
+                        //    Log.d(TAG, "displayData(), Add A1 receive data to List.");
+                        //    A0ReciveList.add(byteArray);
+                        //    A1Tmp = byteArray.clone();
+                        //    //LogDebugShow("A1 new item", A0ReciveList.get(A0ReciveList.size()-1));
 
                             CommandTest((byte) 0xA1);
-                            mBluetoothLeService.cdt.start();
+                            //mBluetoothLeService.cdt.start();
                             mBluetoothLeService.broadcastUpdate(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
-                            Log.d("0xA0 Ack", "sent A0 Ack to BLE service.");
-                        }
+                            Log.d(TAG, "displayData(), 0xA0 Ack to BLE service.");
+                        //}
                         break;
 
                     default:
